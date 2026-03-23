@@ -5,6 +5,8 @@ import java.time.Duration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import com.nzube.service_availability_monitor.enums.ServiceStatus;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,6 +16,29 @@ import lombok.extern.slf4j.Slf4j;
 public class RedisService {
 
     private final RedisTemplate<String, Object> redisTemplate;
+
+    // ─── Service Status ───────────────────────────────────────────
+
+    private static final String SERVICE_STATUS_KEY = "service:status:";
+    private static final Duration STATUS_TTL = Duration.ofDays(1);
+
+    public void saveLastKnownStatus(Long serviceId, ServiceStatus status) {
+        String key = SERVICE_STATUS_KEY + serviceId;
+        redisTemplate.opsForValue().set(key, status.name(), STATUS_TTL);
+        log.debug("Saved status {} for service {}", status, serviceId);
+    }
+
+    public ServiceStatus getLastKnownStatus(Long serviceId) {
+        String key = SERVICE_STATUS_KEY + serviceId;
+        Object value = redisTemplate.opsForValue().get(key);
+        if (value == null)
+            return null;
+        return ServiceStatus.valueOf(value.toString());
+    }
+
+    public void deleteLastKnownStatus(Long serviceId) {
+        redisTemplate.delete(SERVICE_STATUS_KEY + serviceId);
+    }
 
     // ─── Login Rate Limiting ──────────────────────────────────────
 
