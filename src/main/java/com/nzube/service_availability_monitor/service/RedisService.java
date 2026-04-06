@@ -40,6 +40,22 @@ public class RedisService {
         redisTemplate.delete(SERVICE_STATUS_KEY + serviceId);
     }
 
+    // ─── Notification Rate Limiting ───────────────────────────────
+
+    private static final String NOTIFICATION_RATE_LIMIT_KEY = "notification:rate:";
+    private static final Duration NOTIFICATION_TTL = Duration.ofMinutes(30);
+
+    public boolean isRateLimited(Long serviceId) {
+        String key = NOTIFICATION_RATE_LIMIT_KEY + serviceId;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+    }
+
+    public void setRateLimit(Long serviceId) {
+        String key = NOTIFICATION_RATE_LIMIT_KEY + serviceId;
+        redisTemplate.opsForValue().set(key, "1", NOTIFICATION_TTL);
+        log.debug("Rate limit set for service {} for {} minutes", serviceId, NOTIFICATION_TTL.toMinutes());
+    }
+
     // ─── Login Rate Limiting ──────────────────────────────────────
 
     private static final String LOGIN_ATTEMPT_RATE_LIMIT_KEY = "login:attempts:";
